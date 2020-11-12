@@ -2,12 +2,15 @@ import tensorflow as tf
 import tensorflow.keras as K
 import tensorflow.keras.layers as L
 
+
 class SamplingGaussian(L.Layer):
     """reparameterization trick"""
+
     def call(self, inputs):
         z_mean, z_log_var = inputs
         normal = tf.random.normal(tf.shape(z_mean))
         return z_mean + normal * tf.exp(0.5 * z_log_var)
+
 
 class Encoder(L.Layer):
     def __init__(self, latent_dim, hidden_units, **kwargs):
@@ -23,16 +26,18 @@ class Encoder(L.Layer):
         z_log_var = self.dense_z_log_var(x)
         return z_mean, z_log_var
 
+
 class Decoder(L.Layer):
     def __init__(self, output_dim, hidden_units, **kwargs):
         super(Decoder, self).__init__(**kwargs)
         self.projection = L.Dense(hidden_units, activation="relu")
         self.dense_out = L.Dense(output_dim, activation="sigmoid")
-    
+
     def call(self, inputs):
         x = self.projection(inputs)
         o = self.dense_out(x)
         return o
+
 
 class VAE(K.Model):
     """'Vanilla' Variational Autoencoder.
@@ -42,6 +47,7 @@ class VAE(K.Model):
     made some changes to the original codes to make applying the model to
     different datasets or adding new features easy (and just to fit my preference).
     """
+
     def __init__(self, data_dim, latent_dim, **kwargs):
         super(VAE, self).__init__(**kwargs)
         self.enc = Encoder(latent_dim, 512)

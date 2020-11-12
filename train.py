@@ -8,14 +8,17 @@ from vae import VAE
 import argparse
 import os
 
+
 class MyCallback(K.callbacks.Callback):
     def __init__(self):
         super(MyCallback, self).__init__()
+
 
 def preprocess_mnist(x):
     x = tf.reshape(x["image"], (-1, ))
     x = tf.cast(x, tf.float32) / 255.
     return (x, x)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -42,13 +45,15 @@ if __name__ == "__main__":
     model = VAE(data_dim=data_dim, latent_dim=args.latent_dim)
 
     # prepare tensorboard logging
-    tensorboard_callback = K.callbacks.TensorBoard(log_dir=args.logdir, 
+    tensorboard_callback = K.callbacks.TensorBoard(log_dir=args.logdir,
                                                    update_freq="batch")
 
     # use built-in training loop
     optimizer = K.optimizers.Adam(learning_rate=args.learning_rate)
     # model.compile(optimizer, K.losses.BinaryCrossentropy())
-    model.compile(optimizer, K.losses.MeanSquaredError(reduction=K.losses.Reduction.SUM))
+    model.compile(
+        optimizer, K.losses.MeanSquaredError(
+            reduction=K.losses.Reduction.SUM))
     model.fit(train_ds, epochs=5, callbacks=[tensorboard_callback])
 
     # analysis/evaluation
@@ -63,7 +68,7 @@ if __name__ == "__main__":
     y = tf.reshape(tf.transpose(lin), [nums, nums, 1])
     z = tf.concat([x, y], axis=-1)
     z = tf.reshape(z, [nums * nums, -1])
-    
+
     # --- uncomment for n-dim latents ---
     # z = tf.random.normal((nums * nums, 32)) * rng
 
@@ -72,14 +77,15 @@ if __name__ == "__main__":
 
     img = tf.reshape(img, (-1, 28, 28, 1)).numpy()
 
-    tile = np.empty((1, nums*28, nums*28, 1))
+    tile = np.empty((1, nums * 28, nums * 28, 1))
     for i in range(nums * nums):
         x = i // nums
         y = i % nums
-        tile[0, x*28:(x+1)*28, y*28:(y+1)*28, :] = img[i, :, :, :]
+        tile[0, x * 28:(x + 1) * 28, y * 28:(y + 1) * 28, :] = img[i, :, :, :]
 
     # save image
-    cv2.imwrite(os.path.join(args.logdir, "traverse.png"), tile[0, :, :, :] * 255.) 
+    cv2.imwrite(os.path.join(args.logdir, "traverse.png"),
+                tile[0, :, :, :] * 255.)
 
     # embed test images in the latent space
     x_list = [[], [], [], [], [], [], [], [], [], []]
@@ -88,7 +94,7 @@ if __name__ == "__main__":
         img = x["image"]
         label = x["label"]
         img = tf.cast(img[tf.newaxis, :, :, :], tf.float32) / 255.
-        img = tf.reshape(img, [1, 28*28])
+        img = tf.reshape(img, [1, 28 * 28])
         z, _ = model.enc(img)  # use means as representative points
         # 2-dim
         x_list[label.numpy()].append(z[0, 0])
@@ -98,12 +104,11 @@ if __name__ == "__main__":
     # plot the latent space
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
-    color = ["red", "green", "blue", "cyan", "magenta", 
+    color = ["red", "green", "blue", "cyan", "magenta",
              "yellow", "black", "gray", "orange", "purple"]
     for i, (x, y) in enumerate(zip(x_list, y_list)):
-        ax.scatter(np.array(x), np.array(y), 
+        ax.scatter(np.array(x), np.array(y),
                    marker=".", c=color[i], label=str(i))
 
     ax.legend()
     plt.savefig(os.path.join(args.logdir, "embed.png"))
-
